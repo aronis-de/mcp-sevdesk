@@ -121,6 +121,8 @@ export const orderTools = {
       taxType: z.enum(["default", "eu", "noteu", "ss"]).optional().describe("Tax type: default, eu, noteu, ss"),
       taxText: z.string().optional().describe("Tax text (e.g., 'zzgl. 19% USt.')"),
       contactPersonId: z.number().optional().describe("ID of the sevdesk user as contact person"),
+      paymentTerms: z.string().optional().describe("Payment terms (e.g., '30 Tage')"),
+      deliveryTerms: z.string().optional().describe("Delivery terms"),
       positions: z.array(z.object({
         name: z.string().describe("Name/description of the position"),
         quantity: z.number().describe("Quantity"),
@@ -145,6 +147,8 @@ export const orderTools = {
       taxType?: "default" | "eu" | "noteu" | "ss";
       taxText?: string;
       contactPersonId?: number;
+      paymentTerms?: string;
+      deliveryTerms?: string;
       positions?: Array<{ name: string; quantity: number; price: number; taxRate: number; text?: string }>;
     }) => {
       // Convert orderDate from YYYY-MM-DD to dd.mm.yyyy
@@ -207,6 +211,8 @@ export const orderTools = {
       if (params.footText) body.order.footText = params.footText;
       if (params.address) body.order.address = params.address;
       if (params.customerInternalNote) body.order.customerInternalNote = params.customerInternalNote;
+      if (params.paymentTerms) body.order.paymentTerms = params.paymentTerms;
+      if (params.deliveryTerms) body.order.deliveryTerms = params.deliveryTerms;
       if (params.contactPersonId) {
         body.order.contactPerson = {
           id: params.contactPersonId,
