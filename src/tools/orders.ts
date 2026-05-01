@@ -121,6 +121,13 @@ export const orderTools = {
       taxType: z.enum(["default", "eu", "noteu", "ss"]).optional().describe("Tax type: default, eu, noteu, ss"),
       taxText: z.string().optional().describe("Tax text (e.g., 'zzgl. 19% USt.')"),
       contactPersonId: z.number().optional().describe("ID of the sevdesk user as contact person"),
+      positions: z.array(z.object({
+        name: z.string().describe("Name/description of the position"),
+        quantity: z.number().describe("Quantity"),
+        price: z.number().describe("Price per unit (net)"),
+        taxRate: z.number().describe("Tax rate (e.g., 19)"),
+        text: z.string().optional().describe("Additional text"),
+      })).optional().describe("Initial positions (at least one required by SevDesk)"),
     }),
     handler: async (client: SevdeskClient, params: {
       orderType: "AN" | "AB" | "LI";
@@ -138,6 +145,7 @@ export const orderTools = {
       taxType?: "default" | "eu" | "noteu" | "ss";
       taxText?: string;
       contactPersonId?: number;
+      positions?: Array<{ name: string; quantity: number; price: number; taxRate: number; text?: string }>;
     }) => {
       const body: Record<string, any> = {
         order: {
@@ -158,7 +166,17 @@ export const orderTools = {
           showNet: params.showNet !== false ? "1" : "0",
           mapAll: true,
         },
-        orderPosSave: [],
+        orderPosSave: (params.positions || []).map((pos, idx) => ({
+          objectName: "OrderPos",
+          mapAll: true,
+          name: pos.name,
+          quantity: pos.quantity,
+          price: pos.price,
+          taxRate: pos.taxRate,
+          text: pos.text || null,
+          unity: { id: 1, objectName: "Unity" },
+          positionNumber: idx,
+        })),
         orderPosDelete: null,
       };
 
