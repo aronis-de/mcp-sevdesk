@@ -1,7 +1,10 @@
 #!/usr/bin/env node
 
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+import express, { Request, Response } from "express";
+
 import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
@@ -13,6 +16,7 @@ import { createSevdeskClient, type SevdeskClient } from "./client.js";
 import {
   contactTools,
   invoiceTools,
+  orderTools,
   voucherTools,
   accountTools,
   partTools,
@@ -23,6 +27,7 @@ import {
 const allTools = {
   ...contactTools,
   ...invoiceTools,
+  ...orderTools,
   ...voucherTools,
   ...accountTools,
   ...partTools,
@@ -205,9 +210,23 @@ function zodTypeToJsonSchema(zodType: z.ZodType): object {
 
 // Start server
 async function main() {
-  const transport = new StdioServerTransport();
+  const app = express();
+  app.use(express.json());
+
+  const transport = new StreamableHTTPServerTransport({
+    sessionIdGenerator: () => crypto.randomUUID(),
+  });
+
   await server.connect(transport);
-  console.error("sevdesk MCP server running on stdio");
+
+  app.post("/mcp", async (req: Request, res: Response) => {
+    await transport.handleRequest(req, res, req.body);
+  });
+
+  const PORT = process.env.PORT || 8001;
+  app.listen(PORT, () => {
+    console.error(`sevdesk MCP server running on http://localhost:${PORT}/mcp`);
+  });
 }
 
 main().catch((error) => {
