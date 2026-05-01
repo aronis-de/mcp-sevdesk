@@ -219,9 +219,11 @@ export const orderTools = {
       const order = (orderData as any).objects?.[0] || orderData;
       const existingPositions = (posData as any).objects || [];
 
-      // Add new position
+      // Add new position - must include order reference
       const newPosition: Record<string, any> = {
         objectName: "OrderPos",
+        mapAll: true,
+        order: { id: params.orderId, objectName: "Order" },
         name: params.name,
         quantity: params.quantity,
         price: params.price,
@@ -235,11 +237,12 @@ export const orderTools = {
         newPosition.part = { id: params.partId, objectName: "Part" };
       }
 
-      // Save order with all positions
+      // Save order with all positions - existing ones just need id reference
       const body = {
         order: {
           id: params.orderId,
           objectName: "Order",
+          mapAll: true,
         },
         orderPosSave: [
           ...existingPositions.map((pos: any) => ({
