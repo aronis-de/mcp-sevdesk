@@ -168,7 +168,6 @@ export const orderTools = {
         },
         orderPosSave: (params.positions || []).map((pos, idx) => ({
           objectName: "OrderPos",
-          mapAll: true,
           name: pos.name,
           quantity: pos.quantity,
           price: pos.price,
