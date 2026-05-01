@@ -425,7 +425,8 @@ export const orderTools = {
       if (posError) throw new Error(JSON.stringify(posError));
 
       const positions = (posData as any).objects || [];
-      const remainingPositions = positions.filter((pos: any) => pos.id !== params.orderPosId);
+      // Compare as strings since API returns id as string
+      const remainingPositions = positions.filter((pos: any) => String(pos.id) !== String(params.orderPosId));
 
       if (remainingPositions.length === positions.length) {
         throw new Error(`Position with ID ${params.orderPosId} not found in order ${params.orderId}`);
