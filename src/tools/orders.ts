@@ -147,9 +147,14 @@ export const orderTools = {
       contactPersonId?: number;
       positions?: Array<{ name: string; quantity: number; price: number; taxRate: number; text?: string }>;
     }) => {
+      // Convert orderDate from YYYY-MM-DD to dd.mm.yyyy
+      const [year, month, day] = params.orderDate.split("-");
+      const formattedDate = `${day}.${month}.${year}`;
+
       const body: Record<string, any> = {
         order: {
           objectName: "Order",
+          mapAll: true,
           orderType: params.orderType,
           contact: {
             id: params.contactId,
@@ -157,24 +162,43 @@ export const orderTools = {
           },
           orderNumber: params.orderNumber,
           header: params.header,
-          orderDate: params.orderDate,
+          orderDate: formattedDate,
           status: params.status ? Number(params.status) : 100,
           version: 0,
+          smallSettlement: false,
           currency: params.currency || "EUR",
           taxType: params.taxType || "default",
-          taxText: params.taxText || "zzgl. 19% USt.",
-          showNet: params.showNet !== false ? "1" : "0",
-          mapAll: true,
+          taxRule: { id: 1, objectName: "TaxRule" },  // SevDesk 2.0
+          taxRate: 0,  // deprecated but required
+          taxText: params.taxText || "Umsatzsteuer 19%",
+          showNet: params.showNet !== false,
+          addressCountry: { id: 1, objectName: "StaticCountry" },
+          headText: null,
+          footText: null,
+          deliveryTerms: null,
+          paymentTerms: null,
+          sendDate: null,
+          customerInternalNote: null,
+          sendType: null,
+          origin: null,
         },
         orderPosSave: (params.positions || []).map((pos, idx) => ({
+          id: null,  // Required for new positions!
           objectName: "OrderPos",
+          mapAll: true,
+          order: null,
+          part: null,
           name: pos.name,
           quantity: pos.quantity,
           price: pos.price,
+          priceTax: pos.price * pos.taxRate / 100,
+          priceGross: pos.price * (1 + pos.taxRate / 100),
           taxRate: pos.taxRate,
           text: pos.text || null,
           unity: { id: 1, objectName: "Unity" },
           positionNumber: idx,
+          discount: 0,
+          optional: false,
         })),
         orderPosDelete: null,
       };
@@ -188,6 +212,10 @@ export const orderTools = {
           id: params.contactPersonId,
           objectName: "SevUser",
         };
+      } else {
+        // contactPerson is required - use a default if not provided
+        // This should be configured per sevdesk account
+        body.order.contactPerson = { id: 812164, objectName: "SevUser" };
       }
 
       const { data, error } = await client.POST("/Order/Factory/saveOrder", {
@@ -383,39 +411,60 @@ export const orderTools = {
       const original = (orderData as any).objects?.[0] || orderData;
       const positions = (posData as any).objects || [];
 
+      // Format today's date as dd.mm.yyyy
+      const today = new Date();
+      const formattedDate = `${String(today.getDate()).padStart(2, '0')}.${String(today.getMonth() + 1).padStart(2, '0')}.${today.getFullYear()}`;
+
       // Create new order with positions
       const newOrder: Record<string, any> = {
         order: {
           objectName: "Order",
+          mapAll: true,
           orderType: original.orderType,
           contact: params.newContactId 
             ? { id: params.newContactId, objectName: "Contact" }
             : original.contact,
           orderNumber: params.newOrderNumber,
           header: original.header?.replace(original.orderNumber, params.newOrderNumber) || `Angebot Nr. ${params.newOrderNumber}`,
-          orderDate: new Date().toISOString().split("T")[0],
+          orderDate: formattedDate,
           status: 100,
           version: 0,
+          smallSettlement: false,
           currency: original.currency || "EUR",
           taxType: original.taxType || "default",
-          taxText: original.taxText,
+          taxRule: { id: 1, objectName: "TaxRule" },
+          taxRate: 0,
+          taxText: original.taxText || "Umsatzsteuer 19%",
           showNet: original.showNet,
-          headText: original.headText,
-          footText: original.footText,
-          address: params.newContactId ? undefined : original.address,
-          mapAll: true,
+          headText: original.headText || null,
+          footText: original.footText || null,
+          address: params.newContactId ? null : original.address,
+          addressCountry: { id: 1, objectName: "StaticCountry" },
+          contactPerson: original.contactPerson || { id: 812164, objectName: "SevUser" },
+          deliveryTerms: null,
+          paymentTerms: null,
+          sendDate: null,
+          customerInternalNote: null,
+          sendType: null,
+          origin: null,
         },
         orderPosSave: positions.map((pos: any, idx: number) => ({
+          id: null,  // Required for new positions!
           objectName: "OrderPos",
           mapAll: true,
+          order: null,
+          part: pos.part || null,
           name: pos.name,
           quantity: Number(pos.quantity),
           price: Number(pos.price),
+          priceTax: Number(pos.priceTax || 0),
+          priceGross: Number(pos.priceGross || 0),
           taxRate: Number(pos.taxRate),
           unity: pos.unity,
           positionNumber: idx,
           text: pos.text || null,
-          discount: pos.discount ? Number(pos.discount) : null,
+          discount: pos.discount ? Number(pos.discount) : 0,
+          optional: false,
         })),
         orderPosDelete: null,
       };
