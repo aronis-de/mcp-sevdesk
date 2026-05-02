@@ -65,17 +65,27 @@ export const invoiceTools = {
       download?: boolean;
       preventSendBy?: boolean;
     }) => {
-      const { data, error } = await client.GET("/Invoice/{invoiceId}/getPdf", {
-        params: {
-          path: { invoiceId: params.invoiceId },
-          query: {
-            download: params.download,
-            preventSendBy: params.preventSendBy,
-          },
+      const queryParams = new URLSearchParams();
+      if (params.download !== undefined) queryParams.append('download', String(params.download));
+      if (params.preventSendBy !== undefined) queryParams.append('preventSendBy', String(params.preventSendBy));
+      
+      const queryString = queryParams.toString();
+      const url = `https://my.sevdesk.de/api/v1/Invoice/${params.invoiceId}/getPdf${queryString ? '?' + queryString : ''}`;
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': (client as any).token,
+          'Accept': 'application/json',
         },
       });
-      if (error) throw new Error(JSON.stringify(error));
-      return data;
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`HTTP ${response.status}: ${error}`);
+      }
+      
+      return await response.json();
     },
   },
 
