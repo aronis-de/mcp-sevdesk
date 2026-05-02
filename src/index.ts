@@ -21,6 +21,7 @@ import {
   accountTools,
   partTools,
   tagTools,
+  projectTools,
 } from "./tools/index.js";
 
 // Combine all tools
@@ -32,6 +33,7 @@ const allTools = {
   ...accountTools,
   ...partTools,
   ...tagTools,
+  ...projectTools,
 };
 
 type ToolName = keyof typeof allTools;

@@ -5,3 +5,4 @@ export { voucherTools } from "./vouchers.js";
 export { accountTools } from "./accounts.js";
 export { partTools } from "./parts.js";
 export { tagTools } from "./tags.js";
+export { projectTools } from "./projects.js";
