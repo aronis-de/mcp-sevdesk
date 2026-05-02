@@ -57,20 +57,18 @@ export const invoiceTools = {
     description: "Get the PDF of an invoice as base64 encoded string",
     inputSchema: z.object({
       invoiceId: z.number().describe("The ID of the invoice"),
-      download: z.boolean().optional().describe("Whether to download the PDF"),
-      preventSendBy: z.boolean().optional().describe("Prevent setting sendBy date"),
+      preventSendBy: z.boolean().optional().describe("Prevent setting sendBy date (default: true)"),
     }),
     handler: async (client: SevdeskClient, params: {
       invoiceId: number;
-      download?: boolean;
       preventSendBy?: boolean;
     }) => {
+      // Note: do NOT set download=true, that returns raw PDF binary
+      // Without download param, API returns JSON with base64 content
       const queryParams = new URLSearchParams();
-      if (params.download !== undefined) queryParams.append('download', String(params.download));
-      if (params.preventSendBy !== undefined) queryParams.append('preventSendBy', String(params.preventSendBy));
+      queryParams.append('preventSendBy', String(params.preventSendBy ?? true));
       
-      const queryString = queryParams.toString();
-      const url = `https://my.sevdesk.de/api/v1/Invoice/${params.invoiceId}/getPdf${queryString ? '?' + queryString : ''}`;
+      const url = `https://my.sevdesk.de/api/v1/Invoice/${params.invoiceId}/getPdf?${queryParams.toString()}`;
       
       const response = await fetch(url, {
         method: 'GET',
@@ -85,7 +83,22 @@ export const invoiceTools = {
         throw new Error(`HTTP ${response.status}: ${error}`);
       }
       
-      return await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        return await response.json();
+      } else {
+        // Fallback: if we still get binary, convert to base64
+        const buffer = await response.arrayBuffer();
+        const base64 = Buffer.from(buffer).toString('base64');
+        return {
+          objects: {
+            filename: `invoice_${params.invoiceId}.pdf`,
+            mimeType: 'application/pdf',
+            base64Encoded: true,
+            content: base64
+          }
+        };
+      }
     },
   },
 
