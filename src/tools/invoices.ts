@@ -207,4 +207,20 @@ export const invoiceTools = {
       return data;
     },
   },
+
+  render_invoice_pdf: {
+    description: "Render the PDF document of an invoice. Use this to generate/regenerate the PDF. Returns metadata about the PDF including docId.",
+    inputSchema: z.object({
+      invoiceId: z.number().describe("The ID of the invoice to render"),
+    }),
+    handler: async (client: SevdeskClient, params: { invoiceId: number }) => {
+      const { data, error } = await client.POST("/Invoice/{invoiceId}/render" as any, {
+        params: {
+          path: { invoiceId: params.invoiceId },
+        },
+      });
+      if (error) throw new Error(JSON.stringify(error));
+      return data;
+    },
+  },
 };
